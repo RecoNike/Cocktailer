@@ -53,6 +53,6 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Error){
 
             }
-        }
+        }//init
     }
 }
