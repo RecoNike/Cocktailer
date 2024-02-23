@@ -1,10 +1,12 @@
 package com.recon.coctailer
 
+import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.EditText
 import android.widget.ImageButton
@@ -12,6 +14,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -38,6 +41,9 @@ class SearchActivity : AppCompatActivity() {
 
         searchByNameBt.setOnClickListener{
             searchByName(nameField.text.toString())
+        }
+        searchByCategoryBt.setOnClickListener{
+            searchByCat(choosenCat)
         }
         getRandomTvBt.setOnClickListener {
             val i = Intent(this, MainActivity::class.java)
@@ -66,43 +72,63 @@ class SearchActivity : AppCompatActivity() {
 
     fun searchByName(name: String){
         lifecycleScope.launch{
-            try{
-                val url = "https://www.thecocktaildb.com/api/json/v1/1/search.php?s=" + name
-                val response = volleyRequest.getJsonFromUrl(url)
-                val data = response.toString()
-                val jsonObject = JSONObject(data)
-//                val drinks = jsonObject.getJSONArray("drinks")
-                Log.d("", jsonObject.toString())
+            if(name.isNotBlank()){
+                try {
+                    name.replace(Regex("[^\\wа-яёА-ЯЁ ]"), "")
+                    val url = "https://www.thecocktaildb.com/api/json/v1/1/search.php?s=" + name
+                    val response = volleyRequest.getJsonFromUrl(url)
+                    val data = response.toString()
+                    val jsonObject = JSONObject(data)
+                    Log.d("", jsonObject.toString())
 
-//                var ingrString: String = "Ingredients\n\n"
-//                if (drinks.length() > 0){
-//                    val coctail = drinks.getJSONObject(0)
-//                    name.text = coctail.getString("strDrink")
-//                    val coctailImageUrl = coctail.getString("strDrinkThumb")
-//                    cookingTv.text = coctail.getString("strInstructions")
-//                    Glide.with(this@MainActivity).load(coctailImageUrl).into(imageView)
-//
-//                    for (i in 1..12){
-//                        val ingredientKey = "strIngredient$i"
-//                        val measureKey = "strMeasure$i"
-//                        val ingredient = coctail.getString(ingredientKey)
-//                        val measure = coctail.getString(measureKey)
-//                        // If ingredient is not empty, add it to the string
-//                        if (ingredient != "null") {
-//                            ingrString += "► $ingredient - $measure\n"
-//                        }
-//
-//                    }
-//                    ingredients.text = ingrString
-//                    ingredients.visibility = View.VISIBLE
-//                    name.visibility = View.VISIBLE
-//                    cookingTv.visibility = View.VISIBLE
-//                }
+                    if(data != "{\"drinks\":null}") {
+                        val intent = Intent(this@SearchActivity, ResultActivity::class.java)
+                        intent.putExtra("cocktailData", data)
+                        startActivity(intent)
+                    } else {
+                        hideKeyboard(nameField)
+                        Snackbar.make(
+                            this@SearchActivity,
+                            searchByNameBt,
+                            "Nothing found",
+                            Snackbar.LENGTH_SHORT
+                        ).show()
+                    }
+                } catch (e: Error) {
 
-            } catch (e: Error){
-
+                }
             }
         }
+    }
+    fun searchByCat(cat: String){
+        lifecycleScope.launch{
+            if(cat.isNotBlank()){
+                try {
+                    val formattedCat = cat.replace(" ", "_")
+                    val url = "https://www.thecocktaildb.com/api/json/v1/1/filter.php?c=" + formattedCat
+                    val response = volleyRequest.getJsonFromUrl(url)
+                    val data = response.toString()
+                    val jsonObject = JSONObject(data)
+                    Log.d("", jsonObject.toString())
+
+                    // Создайте Intent для перехода к новой активити
+                    val intent = Intent(this@SearchActivity, ResultActivity::class.java)
+
+                    // Поместите JSON как дополнение к Intent
+                    intent.putExtra("catData", data)
+
+                    // Запустите новую активити
+                    startActivity(intent)
+                } catch (e: Error) {
+
+                }
+            }
+        }
+    }
+
+    fun hideKeyboard(view: View) {
+        val inputMethodManager = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
 }
